@@ -1,0 +1,25 @@
+- hosts: ec2_ip
+  tasks:
+  - name: "install python3"
+    package:
+        name: python3
+        state: present
+  - name: Ensure group "deploy" exists
+    group:
+     name: deploy
+     state: present
+  - name: "add deploy group to ubuntu"
+    user:
+      name: ubuntu
+      group: deploy
+  - name: Change file ownership, group and permissions
+    file:
+     path: "/srv"
+     owner: "ubuntu"
+     group: "deploy"
+     mode: '2775' 
+  - name: "find command"
+    command: sudo find /srv -type d -exec chmod 2775 {} +
+  - name: "find command"
+    command: sudo find /srv -type f -exec chmod 0664 {} +
+

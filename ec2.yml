@@ -1,0 +1,81 @@
+- name: example ec2 group
+  hosts: localhost
+  vars_files:
+        - access.yml
+  tasks:
+   - ec2_group:
+       name: "local_sg"
+       description: "an example EC2 group"
+       vpc_id: "vpc-54dc3329"
+       region: "us-east-1"
+       aws_access_key: "{{ access_key }}"
+       aws_secret_key: "{{ secret_key }}"
+       rules:
+        - proto: tcp
+          from_port: 80
+          to_port: 80
+          cidr_ip: 0.0.0.0/0
+          rule_desc: "Port for http"
+        - proto: tcp
+          from_port: 22
+          to_port: 22
+          cidr_ip: 0.0.0.0/0
+        - proto: tcp
+          from_port: 443
+          to_port: 443
+          cidr_ip: 0.0.0.0/0
+        - proto: tcp
+          from_port: 3306
+          to_port: 3306
+          cidr_ip: 0.0.0.0/0
+
+   - name: create a new ec2 key pair, returns generated private key
+     ec2_key:
+       aws_secret_key: "{{ secret_key }}"
+       aws_access_key: "{{ access_key }}"
+       name: test_keypair
+       key_material: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+       region: "us-east-1"
+   - name: "launch new ec2 instance"
+     ec2:
+           #name: "local_os"
+      aws_secret_key: "{{ secret_key }}"
+      aws_access_key: "{{ access_key }}"
+      key_name: test_keypair
+      instance_type: t2.micro
+      image: "ami-0ac80df6eff0e70b5"
+      wait: yes
+      instance_tags: 
+           Name: "test_os"
+      group: "local_sg"
+      region: "us-east-1"
+      count: 1
+      vpc_subnet_id: "subnet-94dcbfd9"
+      assign_public_ip: yes
+     register: x
+   - debug: 
+       var : x.instances[0].key_name
+   - name: associate an elastic IP with an instance
+     ec2_eip:
+      aws_secret_key: "{{ secret_key }}"
+      aws_access_key: "{{ access_key }}"
+      instance_id: "{{ x.instance_ids[0] }}"
+      in_vpc: yes
+      state: present
+      reuse_existing_ip_allowed: yes
+      #ip: 93.184.216.119
+      region: "us-east-1"  
+     register: y
+   - debug: 
+       var : y
+
+   - name: "add hosted zone in rout53"
+     route53:
+      aws_secret_key: "{{ secret_key }}"
+      aws_access_key: "{{ access_key }}"
+      state: present
+      zone: cloudflames.co
+      record: mayank2.cloudflames.co
+      type: A
+      value: "{{ y.public_ip }}"
+      wait: yes

@@ -1,0 +1,65 @@
+- hosts: ec2_ip
+  vars_prompt:
+      - name: host_zone
+        prompt: "Enter your hosted zone"
+        private: no
+  tasks:
+  - name: "run composer and npm"
+    shell: |
+           cd /srv/cordell
+           sudo composer install
+           sudo npm install
+    args:
+       executable: /bin/bash
+    ignore_errors: yes
+  - name: "copy projects file"
+    copy:
+       src: projects.csv
+       dest: /srv/cordell/storage/app/public
+    ignore_errors: yes
+  - name: "run npm dev"
+    shell: |
+           cd /srv/cordell
+           sudo npm run dev
+    args:
+       executable: /bin/bash
+    ignore_errors: yes
+  - name: "change file mode /srv/cordell/storage"
+    command:
+        cmd: sudo chmod -R 777 /srv/cordell/storage
+    ignore_errors: yes
+  - name: "change file mode /srv/cordell/bootstrap/cache"
+    command:
+        cmd: sudo chmod -R 777 /srv/cordell/bootstrap/cache
+    ignore_errors: yes
+
+  - name: "run php artisan"
+    shell: |
+           cd /srv/cordell
+           sudo php artisan migrate
+           sudo php artisan key:generate
+           sudo php artisan db:seed
+    args:
+       executable: /bin/bash
+    ignore_errors: yes
+
+  - name: "copy cordell.conf file"
+    template:
+       src: cordell.conf.j2
+       dest: /etc/apache2/sites-available/cordell.conf
+    ignore_errors: yes
+  - name: "enable the vhost"
+    command:
+        cmd: sudo a2ensite cordell.conf
+    ignore_errors: yes
+  - name: "rewrite module"
+    command:
+        cmd: sudo a2enmod rewrite
+    ignore_errors: yes
+  - name: "restart the apache service"
+    service:
+      name: apache2
+      state: restarted
+      enabled: yes
+    ignore_errors: yes
+

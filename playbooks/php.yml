@@ -1,0 +1,77 @@
+- hosts: ec2_ip
+  tasks:
+  - name: "update cache"
+    apt:
+      upgrade: yes
+      update_cache: yes
+  - name: "install software-properties-common"
+    apt:
+      name: software-properties-common
+      state: present
+  - name: "add-repository"
+    apt_repository: 
+      repo: ppa:ondrej/php
+  - name: "update cache"
+    apt:
+      upgrade: yes
+      update_cache: yes
+  - name: "install php"
+    apt:
+      name: php7.3
+      state: present
+  - name: "install all the php extensions"
+    apt:
+      name: "{{ item }}"
+      state: present
+    with_items:
+        - php7.3-common 
+        - php7.3-mysql 
+        - php7.3-xml 
+        - php7.3-xmlrpc 
+        - php7.3-curl 
+        - php7.3-gd 
+        - php7.3-imagick 
+        - php7.3-cli 
+        - php7.3-dev 
+        - php7.3-imap 
+        - php7.3-mbstring 
+        - php7.3-opcache 
+        - php7.3-soap 
+        - php7.3-zip 
+        - php7.3-intl 
+ 
+  - name: "curl the softwares"
+    shell: 
+      cmd: curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+  - name: "install make gcc and g++"
+    apt:
+       name: "{{ item }}"
+       state: present
+    with_items:
+       - nodejs
+       - make
+  - name: "update cache"
+    apt:
+      upgrade: yes
+      update_cache: yes
+  - name: "install git"
+    apt:
+      name: git
+      state: present
+  - name: "update cache"
+    apt:
+      upgrade: yes
+      update_cache: yes
+  - name: "install node"
+    apt:
+      name: nodejs
+      state: present
+  - name: "update cache"
+    apt:
+      upgrade: yes
+      update_cache: yes
+
+
+
+
+

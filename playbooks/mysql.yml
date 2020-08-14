@@ -1,0 +1,56 @@
+- hosts: ec2_ip
+  vars_prompt:
+      - name: mysql_user
+        prompt: "Enter your mysql user name"
+        private: no
+      - name: mysql_password
+        prompt: "Enter your mysql password"
+        private: yes
+      - name: mysql_db
+        prompt: "Enter your mysql database name"
+        private: no
+
+  tasks:
+  - name: "Install mysql server"
+    apt:
+     name: "{{ item }}"
+     state: present
+    with_items:
+       - mysql-server
+       - python3-pymysql
+       - python-pymysql
+       - python-apt
+       - python3-apt
+  - name : "Ensure mysql started"
+    service:
+      name: mysql
+      state: started
+      enabled: yes
+  - name: "Create database user using hashed password with all database privileges"
+    mysql_user:
+     name: "{{ mysql_user }}"
+     password: "{{ mysql_password }}"
+     check_implicit_admin: true
+     login_unix_socket: /var/run/mysqld/mysqld.sock
+     login_user: "{{ mysql_user }}"
+     login_password: "{{ mysql_password }}"
+     priv: '*.*:ALL'
+     state: present
+
+  - name: "Create database"
+    mysql_db:
+     name: "{{ mysql_db }}"
+     login_unix_socket: /var/run/mysqld/mysqld.sock
+     login_user: "{{ mysql_user }}"
+     login_password: "{{ mysql_password }}"
+     state: present
+  - name: "clone repo"
+    git:
+      repo: 'git@github.com:PearlThoughts/cordell.git'
+      dest: /srv/cordell/
+    ignore_errors: yes
+  - name: "copy .env file"
+    template:
+       src: .env.j2
+       dest: /srv/cordell/.env
+    ignore_errors: yes
